@@ -1,164 +1,86 @@
 # github_vps
 
-在 GitHub 上申请免费的 VPS。
+在 GitHub Codespaces / Docker 环境中启动临时 Ubuntu Desktop 或 Windows 11 实验环境。
 
-> 图文教程：https://mp.weixin.qq.com/s/vnA2AXD5zXiXGJNPdNH0BA
+> 仅用于你有权使用的环境。不要把带有弱口令的 SSH、RDP、Web Terminal 或管理端口公开到互联网。
 
-## 创建示例
+## 安全变更
 
-### Ubuntu
-<p align="center">
-  <img width="512" alt="image" src="https://github.com/user-attachments/assets/93f97616-8aaf-4206-857a-5d17aed8c4d2" />
-</p>
+从 2026-08-20 起，`start.sh` **不再提供固定默认密码**：
 
-### Windows
-<p align="center">
-  <img width="512" alt="image" src="https://github.com/user-attachments/assets/f40bc167-62b7-4b29-91e0-15e07a76e21c" />
-</p>
+- Windows 必须显式提供 `WINDOWS_PASSWORD`。
+- Ubuntu 必须显式提供 `ROOT_PASSWORD`。
+- 密码至少 12 个字符。
+- 脚本启动完成后不再回显密码。
 
-## 部署教程
+不要把密码、Token、Cookie、私钥或 `.env` 文件提交到 Git。
 
-先给脚本添加执行权限。
+## 启动 Ubuntu
 
 ```bash
 chmod +x start.sh
+ROOT_PASSWORD='请替换为高强度唯一密码' bash start.sh ubuntu
 ```
 
-## Ubuntu 使用教程
+默认端口：
 
-### 启动 Ubuntu
+- Web Terminal: `4200`
+- SSH: `8022`
+- RDP: `3389`
 
-```bash
-bash start.sh ubuntu
-```
-
-### 默认登录信息
-
-Web 终端：
-
-```text
-地址：http://<url>:4200
-用户名：root
-密码：root
-```
-
-SSH：
-
-```text
-地址：<url>:8022
-用户名：root
-密码：root
-```
-
-RDP：
-
-```text
-地址：<url>:3389
-用户名：root
-密码：root
-```
-
-### 修改 Ubuntu root 密码
-
-启动时可以通过 `ROOT_PASSWORD` 指定 root 密码。
-
-```bash
-ROOT_PASSWORD='admin@123' bash start.sh ubuntu
-```
-
-### 连接 SSH
-
-本地连接示例：
+连接示例：
 
 ```bash
 ssh root@localhost -p 8022
 ```
 
-如果使用外部地址，将 `localhost` 替换为你的访问地址。
+如果你把端口映射到外部网络，应额外使用防火墙、访问控制或可信隧道限制来源，不要直接裸露给公网。
+
+## 启动 Windows 11
 
 ```bash
-ssh root@<url> -p 8022
+WINDOWS_PASSWORD='请替换为高强度唯一密码' bash start.sh win11
 ```
 
-### 连接 RDP
+可选自定义用户名：
 
-```text
-地址：<url>:3389
-用户名：root
-密码：root
+```bash
+WINDOWS_USERNAME='MASTER' \
+WINDOWS_PASSWORD='请替换为高强度唯一密码' \
+bash start.sh win11
 ```
 
-如果你启动时设置了 `ROOT_PASSWORD`，这里的密码就是你设置的值。
+资源参数：
 
-### 停止 Ubuntu
+```bash
+WINDOWS_USERNAME='MASTER' \
+WINDOWS_PASSWORD='请替换为高强度唯一密码' \
+WINDOWS_RAM_SIZE='4G' \
+WINDOWS_CPU_CORES='4' \
+WINDOWS_DISK_SIZE='64G' \
+bash start.sh win11
+```
+
+默认端口：
+
+- 管理界面: `8006`
+- RDP: `3389`
+
+## 停止
+
+停止 Ubuntu：
 
 ```bash
 bash start.sh stop ubuntu
 ```
 
-## Windows 使用教程
-
-> 不同Windows版本可以在这里看：https://hub.docker.com/r/dockurr/windows
-> 
-> 然后改：
-> ```bash
-> environment:
->     VERSION: "11"
-> ```
-
-### 启动 Windows 11
-
-默认启动 Windows 11。
-
-```bash
-bash start.sh
-```
-
-也可以显式指定 Win11。
-
-```bash
-bash start.sh win11
-```
-
-### 默认登录信息
-
-管理界面：
-
-```text
-地址：http://<url>:8006
-```
-
-RDP：
-
-```text
-地址：<url>:3389
-用户名：MASTER
-密码：admin@123
-```
-
-### 修改 Windows 登录信息
-
-启动前可以通过环境变量修改用户名和密码。
-
-```bash
-WINDOWS_USERNAME='MASTER' WINDOWS_PASSWORD='admin@123' bash start.sh win11
-```
-
-也可以修改资源配置。
-
-```bash
-WINDOWS_RAM_SIZE='4G' WINDOWS_CPU_CORES='4' WINDOWS_DISK_SIZE='64G' bash start.sh win11
-```
-
-### 停止 Windows
+停止 Windows：
 
 ```bash
 bash start.sh stop win11
 ```
 
-## 停止全部
-
-如果需要同时停止 Windows 和 Ubuntu，执行：
+停止全部：
 
 ```bash
 bash start.sh stop
@@ -166,42 +88,40 @@ bash start.sh stop
 
 ## 端口说明
 
-| 系统      | 服务       | 端口   |
-| ------- | -------- | ---- |
-| Ubuntu  | Web 终端   | 4200 |
-| Ubuntu  | SSH      | 8022 |
-| Ubuntu  | RDP      | 3389 |
+| 系统 | 服务 | 端口 |
+|---|---|---:|
+| Ubuntu | Web Terminal | 4200 |
+| Ubuntu | SSH | 8022 |
+| Ubuntu | RDP | 3389 |
 | Windows | Web 管理界面 | 8006 |
-| Windows | RDP      | 3389 |
+| Windows | RDP | 3389 |
 
-注意，Ubuntu 和 Windows 都会使用 `3389` 端口。如果需要切换系统，请先停止当前正在运行的系统。
+Ubuntu 和 Windows 都使用 `3389`，不要同时启动并争用同一宿主机端口。
 
-```bash
-bash start.sh stop ubuntu
-```
+## 环境变量
 
-或者：
+### Windows
 
-```bash
-bash start.sh stop win11
-```
+- `WINDOWS_USERNAME`：默认 `MASTER`
+- `WINDOWS_PASSWORD`：**必填，至少 12 字符**
+- `WINDOWS_VERSION`：默认 `11`
+- `WINDOWS_RAM_SIZE`：默认 `4G`
+- `WINDOWS_CPU_CORES`：默认 `4`
+- `WINDOWS_DISK_SIZE`：默认 `64G`
+- `WINDOWS_DISK2_SIZE`：默认 `10G`
 
-## 常见问题
-### 远程控制延迟太高
-默认codespaces的VNC是卡的。可以在系统里装一个远程控制软件，比如Todesk、向日葵等，速度就很快了。
+### Ubuntu
 
-### 远程怎么访问
-把URL从private改为public：
+- `ROOT_PASSWORD`：**必填，至少 12 字符**
 
-<img width="1080" height="434" alt="image" src="https://github.com/user-attachments/assets/f96a9008-dd7f-4874-954f-bcbb4dd6caf9" />
+## 暴露到外网前检查
 
-### 一小时就自动删了
-没有活动下会被删，可以跑点任务，并把auto-delete关了：
+1. 已设置高强度、唯一密码。
+2. 只开放确实需要的端口。
+3. 优先使用私有网络、访问控制或可信隧道，不直接把管理端口暴露给整个互联网。
+4. 确认环境中没有长期凭据、私钥或敏感文件。
+5. 临时环境使用完毕后停止服务并清理不再需要的数据。
 
-<img width="1080" height="491" alt="image" src="https://github.com/user-attachments/assets/88001754-7bc5-4b43-b854-e3b2a02ee033" />
+## 说明
 
-
-
-
-
-
+该仓库属于实验/临时环境工具，不应作为长期生产服务器基线。
