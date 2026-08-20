@@ -13,14 +13,14 @@ WINDOWS_STORAGE_SUBDIR="windows/docker-windows-storage"
 UBUNTU_STORAGE_SUBDIR="ubuntu/ubuntu-data"
 
 WINDOWS_USERNAME="${WINDOWS_USERNAME:-MASTER}"
-WINDOWS_PASSWORD="${WINDOWS_PASSWORD:-admin@123}"
+WINDOWS_PASSWORD="${WINDOWS_PASSWORD:-}"
 WINDOWS_VERSION="${WINDOWS_VERSION:-11}"
 WINDOWS_RAM_SIZE="${WINDOWS_RAM_SIZE:-4G}"
 WINDOWS_CPU_CORES="${WINDOWS_CPU_CORES:-4}"
 WINDOWS_DISK_SIZE="${WINDOWS_DISK_SIZE:-64G}"
 WINDOWS_DISK2_SIZE="${WINDOWS_DISK2_SIZE:-10G}"
 
-UBUNTU_ROOT_PASSWORD="${ROOT_PASSWORD:-root}"
+UBUNTU_ROOT_PASSWORD="${ROOT_PASSWORD:-}"
 
 CURRENT_DIR="$(pwd)"
 
@@ -47,6 +47,22 @@ detect_compose_cmd() {
         COMPOSE_CMD="docker-compose"
     else
         echo "❌ 未检测到 docker compose 或 docker-compose，请安装 Docker"
+        exit 1
+    fi
+}
+
+require_password() {
+    local value="$1"
+    local variable_name="$2"
+
+    if [ -z "$value" ]; then
+        echo "❌ 安全检查失败：必须显式设置 ${variable_name}，脚本不再提供固定默认密码。"
+        echo "   请使用高强度、唯一密码后重新运行。"
+        exit 1
+    fi
+
+    if [ ${#value} -lt 12 ]; then
+        echo "❌ 安全检查失败：${variable_name} 至少需要 12 个字符。"
         exit 1
     fi
 }
@@ -117,6 +133,7 @@ prepare_ubuntu_storage() {
 
 start_windows() {
     echo "🪟 模式: Windows 11"
+    require_password "$WINDOWS_PASSWORD" "WINDOWS_PASSWORD"
 
     mkdir -p "$WINDOWS_PATH"
 
@@ -178,7 +195,7 @@ EOF
     echo "   管理界面: http://localhost:8006"
     echo "   RDP 连接: localhost:3389"
     echo "   用户名: ${WINDOWS_USERNAME}"
-    echo "   密码: ${WINDOWS_PASSWORD}"
+    echo "   密码: 已通过 WINDOWS_PASSWORD 显式设置（不回显）"
     echo "   配置目录: $WINDOWS_PATH"
     echo "   数据存储: $WINDOWS_STORAGE_PATH"
     echo "   宿主机设备: $TARGET_DEV"
@@ -186,6 +203,7 @@ EOF
 
 start_ubuntu() {
     echo "🐧 模式: Ubuntu Desktop"
+    require_password "$UBUNTU_ROOT_PASSWORD" "ROOT_PASSWORD"
 
     mkdir -p "$UBUNTU_PATH"
 
@@ -242,7 +260,10 @@ EOF
 #!/bin/bash
 set -e
 
-: "${ROOT_PASSWORD:=root}"
+if [ -z "${ROOT_PASSWORD:-}" ]; then
+    echo "ROOT_PASSWORD is required; refusing to start with a fixed default password." >&2
+    exit 1
+fi
 
 echo "🔐 设置 root 密码..."
 echo "root:${ROOT_PASSWORD}" | chpasswd
@@ -315,7 +336,7 @@ EOF
     echo "   SSH: localhost:8022"
     echo "   Web 终端: http://localhost:4200"
     echo "   用户名: root"
-    echo "   密码: ${UBUNTU_ROOT_PASSWORD}"
+    echo "   密码: 已通过 ROOT_PASSWORD 显式设置（不回显）"
     echo "   配置目录: $UBUNTU_PATH"
     echo "   数据目录: $UBUNTU_STORAGE_PATH"
     echo "   宿主机设备: $TARGET_DEV"
@@ -375,9 +396,8 @@ stop_target() {
 
 show_usage() {
     echo "用法:"
-    echo "  bash start.sh"
-    echo "  bash start.sh win11"
-    echo "  bash start.sh ubuntu"
+    echo "  WINDOWS_PASSWORD='use-a-strong-unique-password' bash start.sh win11"
+    echo "  ROOT_PASSWORD='use-a-strong-unique-password' bash start.sh ubuntu"
     echo "  bash start.sh stop"
     echo "  bash start.sh stop win11"
     echo "  bash start.sh stop ubuntu"
@@ -392,13 +412,13 @@ show_usage() {
     echo ""
     echo "环境变量:"
     echo "  WINDOWS_USERNAME=MASTER"
-    echo "  WINDOWS_PASSWORD=admin@123"
+    echo "  WINDOWS_PASSWORD=<required, minimum 12 characters>"
     echo "  WINDOWS_VERSION=11"
     echo "  WINDOWS_RAM_SIZE=4G"
     echo "  WINDOWS_CPU_CORES=4"
     echo "  WINDOWS_DISK_SIZE=64G"
     echo "  WINDOWS_DISK2_SIZE=10G"
-    echo "  ROOT_PASSWORD=root"
+    echo "  ROOT_PASSWORD=<required, minimum 12 characters>"
 }
 
 case "$MODE" in
